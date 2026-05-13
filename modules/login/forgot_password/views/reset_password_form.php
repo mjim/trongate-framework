@@ -181,9 +181,11 @@
 
                 <h1>Invalid or Expired Link</h1>
                 <p class="instruction-text"><?= out($error_message ?? 'This password reset link is invalid or has expired.') ?></p>
-                <div class="mt-3">
-                    <a href="<?= BASE_URL ?>login/forgot_password">Request a new reset link</a>
-                </div>
+                <?php if (!empty($forgot_password_url)): ?>
+                    <div class="mt-3">
+                        <a href="<?= BASE_URL ?><?= out($forgot_password_url) ?>">Request a new reset link</a>
+                    </div>
+                <?php endif; ?>
 
             <?php endif; ?>
 

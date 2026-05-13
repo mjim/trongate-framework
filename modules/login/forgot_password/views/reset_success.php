@@ -91,7 +91,7 @@
             <p>Your password has been updated successfully. You can now log in using your new password.</p>
             
             <div class="mt-3">
-                <a href="<?= BASE_URL ?>login" class="btn-login">Log In</a>
+                <a href="<?= BASE_URL ?><?= out($login_url) ?>" class="btn-login">Log In</a>
             </div>
         </main>
     </body>

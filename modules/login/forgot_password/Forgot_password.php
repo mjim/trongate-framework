@@ -53,7 +53,7 @@ class Forgot_password extends Trongate {
         $data['form_location'] = BASE_URL . 'login/submit_forgot_password/' . $level_slug;
         $data['identifier_label'] = $model->get_identifier_label($user_level_id);
         $data['user_level_id'] = $user_level_id;
-        $data['login_url'] = $level_slug;
+        $data['login_url'] = $model->get_login_route($user_level_id);
         $data['view_module'] = 'login/forgot_password';
         $this->view('forgot_password_form', $data);
     }
@@ -119,7 +119,7 @@ class Forgot_password extends Trongate {
      */
     private function show_email_sent(int $user_level_id): void {
         $data['user_level_id'] = $user_level_id;
-        $data['login_url'] = $this->get_login_model()->get_login_url($user_level_id);
+        $data['login_url'] = $this->get_login_model()->get_login_route($user_level_id);
         $data['view_module'] = 'login/forgot_password';
         $this->view('email_sent', $data);
     }
@@ -153,6 +153,7 @@ class Forgot_password extends Trongate {
             $data['error_message'] = 'This reset link is invalid or has expired.';
             $data['token'] = null;
             $data['form_location'] = '';
+            $data['forgot_password_url'] = $this->resolve_forgot_password_url($token);
             $this->view('reset_password_form', $data);
             return;
         }
@@ -188,9 +189,17 @@ class Forgot_password extends Trongate {
             $data['error_message'] = 'This reset link is invalid or has expired. Please request a new one.';
             $data['token'] = null;
             $data['form_location'] = '';
+            $data['forgot_password_url'] = $this->resolve_forgot_password_url($token);
             $this->view('reset_password_form', $data);
             return;
         }
+
+        // Capture the level's login route now, before reset_password() consumes
+        // the token — the success view needs it to link back to the correct
+        // login form. get_login_route() applies any matching CUSTOM_ROUTES
+        // reverse lookup so the link respects custom routing.
+        $user_level_id = $model->get_level_id_for_token($token);
+        $data['login_url'] = ($user_level_id !== null) ? $model->get_login_route($user_level_id) : 'login';
 
         // Validate password strength via the password_handler child module
         $this->module('login-password_handler');
@@ -262,6 +271,29 @@ class Forgot_password extends Trongate {
 
         $this->login->show_404();
         die();
+    }
+
+    /**
+     * Resolve the level-aware forgot-password URL for an invalid token.
+     *
+     * Uses the token row (even if used or expired) to recover the user
+     * level so the "request a new reset link" link on the error page
+     * points at the correct level-specific forgot-password form. Returns
+     * an empty string if the token is completely unknown — the view
+     * suppresses the link in that case.
+     *
+     * @param string $token The (possibly invalid) reset token
+     * @return string The relative URL, or '' if no level could be resolved
+     */
+    private function resolve_forgot_password_url(string $token): string {
+        $model = $this->get_login_model();
+        $level_id = $model->get_level_id_for_token_any($token);
+
+        if ($level_id === null) {
+            return '';
+        }
+
+        return 'login/forgot_password/' . $model->get_login_url($level_id);
     }
 
     /**

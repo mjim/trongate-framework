@@ -241,43 +241,18 @@ class Login extends Trongate {
     /**
      * Log the user out.
      *
-     * Determines the correct login URL from the user's current token
-     * before destroying it, then redirects to that level's login form.
-     * Falls back to the homepage if no token is found.
-     *
-     * If the user's level does not have a secret_login_word but other
-     * levels do, the numeric ID cannot be used (it would 404). In that
-     * case, the user is sent to the homepage as a safe fallback.
+     * Destroys all auth tokens and redirects to the site homepage.
+     * Sending the user to BASE_URL rather than a level-specific login
+     * form keeps the logout flow uniform across user levels — projects
+     * can decide what lives at the root.
      *
      * URL: /login/logout
      *
      * @return void
      */
     public function logout(): void {
-        // Determine user level from the current token BEFORE destroying it
-        $user_obj = $this->trongate_tokens->get_user_obj();
-
-        $redirect_target = BASE_URL; // Default: homepage
-
-        if ($user_obj !== false && isset($user_obj->user_level_id)) {
-            $level_id = (int) $user_obj->user_level_id;
-            $levels = $this->model->get_configured_level_configs();
-
-            if (isset($levels[$level_id])) {
-                $config = $levels[$level_id];
-
-                if (!empty($config['secret_login_word'])) {
-                    $redirect_target = 'login/login/' . $config['secret_login_word'];
-                } else {
-                    $redirect_target = 'login/login/' . $level_id;
-                }
-            }
-        }
-
-        // Destroy all tokens
         $this->trongate_tokens->destroy();
-
-        redirect($redirect_target);
+        redirect(BASE_URL);
     }
 
     /**

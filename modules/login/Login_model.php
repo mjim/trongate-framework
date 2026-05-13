@@ -155,6 +155,35 @@ class Login_model extends Model {
         return (string) $user_level_id;
     }
 
+    /**
+     * Get the public-facing login route for a user level.
+     *
+     * Combines get_login_url() with a reverse lookup against CUSTOM_ROUTES,
+     * so a route defined as 'tg-admin' => 'login/login/tg-admin' yields
+     * 'tg-admin' (the public URL) rather than the internal 'login/login/tg-admin'.
+     *
+     * Only literal custom routes are reverse-matched — patterns containing
+     * (:num) or (:any) placeholders are left as the default internal route
+     * because they cannot be unambiguously reversed.
+     *
+     * @param int $user_level_id The user level ID
+     * @return string The route path (no BASE_URL prefix); append to BASE_URL in the view
+     */
+    public function get_login_route(int $user_level_id): string {
+        $slug = $this->get_login_url($user_level_id);
+        $internal = 'login/login/' . $slug;
+
+        if (defined('CUSTOM_ROUTES') && !empty(CUSTOM_ROUTES)) {
+            foreach (CUSTOM_ROUTES as $pattern => $dest) {
+                if ($dest === $internal) {
+                    return $pattern;
+                }
+            }
+        }
+
+        return $internal;
+    }
+
     // -----------------------------------------------------------------
     // Authentication
     // -----------------------------------------------------------------
